@@ -1,0 +1,5 @@
+1) To compile type: make compile , after jtb and jj are installed
+
+2) To run type: java Main [file1] [file2] ...
+
+3) If you want to format the output, SymbolTableBuilderVisitor.printOffsets() method prints the offsets.
