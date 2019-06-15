@@ -1,0 +1,103 @@
+import java_cup.runtime.*;
+
+parser code {:
+    // Connect this parser to a scanner!
+    Scanner s;
+    Parser(Scanner s){ this.s=s; }
+:}
+
+/* define how to connect to the scanner! */
+scan with {: return s.next_token(); :};
+
+/* Terminals (tokens returned by the scanner). */
+terminal            PLUS, LPAREN, RPAREN, IF, ELSE, PREFIX, SUFFIX, LBRACKET, RBRACKET, COMMA;
+terminal String     STRING_LITERAL, IDENTIFIER;        // our scanner provides numbers as strings
+
+
+/*  Non terminals */
+non terminal String     decl, decl2, main_calls, fun_def, cmd_call, fun_call, def_args, def_args2, concat, concat2, call_args, call_args2, call_args3, call_args4, pref_suf, pref_suf3;
+
+/**
+ *  Precedence Declarations
+ */
+
+/**
+ *  The Grammar Rules
+ */
+
+/* FORMAT:  def fun1(...) {...}
+            def fun2(...) {...}
+            def fun3(...) {...}
+            ...................
+            fun1()
+            fun2()
+            ......
+*/
+
+decl ::= fun_def:f decl2:d	{: RESULT = "public class Main{\n" + "public static String " + f + "\n" + d + "\n}";
+                                 System.out.println(RESULT); :}
+        ;
+
+decl2 ::= fun_def:f decl2:d					{: RESULT = "public static String " + f + "\n" + d; :}
+        | main_calls:m		/* main (can main be empty?)*/	{: RESULT = "public static void main(String[] args){\n" + m + "}\n"; :}
+        ;
+
+main_calls ::= cmd_call:f main_calls:m				{: RESULT = "System.out.println(" + f + ");\n" + m; :}
+	| cmd_call:f				        			{: RESULT = "System.out.println(" + f + ");"; :}
+	;
+				/* every function body is just one expression*/
+fun_def ::= IDENTIFIER:i LPAREN def_args:d RPAREN LBRACKET fun_call:f RBRACKET /* fun_call you can have identifier - non main*/ {: RESULT = i + "(" + d + "){\n" + "return " + f + ";\n}\n"; :}
+        | IDENTIFIER:i LPAREN RPAREN LBRACKET fun_call:f RBRACKET {: RESULT = i + "(){\n" + "return " + f + ";\n}\n"; :}
+        ;
+
+/* cmd_call = expression in main*/
+cmd_call ::= IDENTIFIER:i LPAREN call_args:c1 RPAREN concat:c2        {: RESULT = i + "(" + c1 + ")" + c2; :}
+        | IDENTIFIER:i LPAREN RPAREN concat:c                         {: RESULT = i + "()" + c; :}
+        //| IDENTIFIER concat	/* problematic */
+        | STRING_LITERAL:s concat :c                                  {: RESULT = "\"" + s + "\"" + c; :}
+        | IF LPAREN pref_suf:p RPAREN cmd_call:c1 ELSE cmd_call:c2    {: RESULT = "((" + p + ") ? " + c1 + " : " + c2 + ")"; :}
+        ;   
+        
+fun_call ::= IDENTIFIER:i LPAREN call_args3:c1 RPAREN concat2:c2      {: RESULT = i + "(" + c1 + ")" + c2; :}
+        | IDENTIFIER:i LPAREN RPAREN concat2:c                        {: RESULT = i + "()" + c; :}
+        | IDENTIFIER:i concat2:c	/* problematic */             {: RESULT = i + c; :}
+        | STRING_LITERAL:s concat2:c                                  {: RESULT = "\"" + s + "\"" + c; :}
+        | IF LPAREN pref_suf3:p RPAREN fun_call:f1 ELSE fun_call:f2   {: RESULT = "((" + p + ") ? " + f1 + " : " + f2 + ")"; :}    
+        ;     
+
+concat ::= PLUS cmd_call:c      {: RESULT = "+" + c; :}
+	|                       {: RESULT = ""; :}
+        ;
+        
+concat2 ::= PLUS fun_call:f     {: RESULT = "+" + f; :}
+	|                       {: RESULT = ""; :}
+        ;
+
+def_args ::= IDENTIFIER:i def_args2:d       {: RESULT = "String " + i + d; :}
+	;
+
+def_args2 ::= COMMA IDENTIFIER:i def_args2:d    {: RESULT = ",String " + i + d; :}
+        |                                       {: RESULT = ""; :}
+        ;
+
+call_args ::= cmd_call:c1 call_args2:c2         {: RESULT = c1 + c2; :}
+        ;
+
+call_args2 ::= COMMA cmd_call:c1 call_args2:c2  {: RESULT = "," + c1 + c2; :}
+        |                                       {: RESULT = ""; :}
+        ;
+        
+call_args3 ::= fun_call:f call_args4:c          {: RESULT = f + c; :}
+        ;
+
+call_args4 ::= COMMA fun_call:f call_args4:c    {: RESULT = "," + f + c; :}
+        |                                       {: RESULT = ""; :}
+        ;
+        
+pref_suf ::= cmd_call:c1 PREFIX cmd_call:c2     {: RESULT = c2 + ".startsWith(" + c1 + ")"; :}
+	| cmd_call:c1 SUFFIX cmd_call:c2        {: RESULT = c2 + ".endsWith(" + c1 + ")"; :}
+        ;
+		
+pref_suf3 ::= fun_call:f1 PREFIX fun_call:f2    {: RESULT = f2 + ".startsWith(" + f1 + ")"; :}
+        | fun_call:f1 SUFFIX fun_call:f2        {: RESULT = f2 + ".endsWith(" + f1 + ")"; :}
+	;

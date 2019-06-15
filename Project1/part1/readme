@@ -1,0 +1,5 @@
+In current folder:
+
+	To compile : make compile
+
+	To execute : make execute < test_input, where test_input has as many lines as you want

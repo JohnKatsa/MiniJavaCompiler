@@ -1,0 +1,9 @@
+In this folder:
+
+	To compile: make compile
+	
+	To execute: make execute < input_program_file > outputFolder/output_program_file
+	
+(Put the output file in outputFolder folder, to avoid any possible java conflicts)
+	
+I have tried to make input as generic as i could. This implementation supports whatever was told in piazza, plus all valid operations can work in main (except of course identifier in function call). 
